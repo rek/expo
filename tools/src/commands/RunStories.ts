@@ -27,7 +27,7 @@ async function action({ platform, name }: Action) {
   const examplesRoot = path.resolve(__dirname, '../../../story-loaders');
 
   if (!fs.existsSync(examplesRoot)) {
-    fs.mkdirSync(examplesRoot)
+    fs.mkdirSync(examplesRoot);
   }
 
   const projectName = `${name}-stories`;
@@ -81,7 +81,7 @@ async function action({ platform, name }: Action) {
   const packagesToExclude = defaultPackagesToExclude.filter(
     (pkg: string) => !packagesRequiredByModule.includes(pkg)
   );
-  
+
   mergedPkg.expo.autolinking.exclude = packagesToExclude;
 
   // add any extra node modules required by the package (e.g stories components)
@@ -121,7 +121,7 @@ async function action({ platform, name }: Action) {
   fs.writeFileSync(path.resolve(projectRoot, 'ios/Podfile'), podFileStr, { encoding: 'utf-8' });
 
   // Info.plist -> add splash screen
-  IosPlist.modifyAsync(iosRoot, 'Info', config => {
+  IosPlist.modifyAsync(iosRoot, 'Info', (config) => {
     config['UILaunchStoryboardName'] = 'SplashScreen';
     return config;
   });
