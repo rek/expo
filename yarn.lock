@@ -2499,6 +2499,18 @@
     lodash.pick "^4.4.0"
     lodash.template "^4.5.0"
 
+"@expo/vector-icons@^12.0.5":
+  version "12.0.5"
+  resolved "https://registry.yarnpkg.com/@expo/vector-icons/-/vector-icons-12.0.5.tgz#bc508ad05fb7e9a3e008704977cfec6c18aa7728"
+  integrity sha512-zWvHBmkpbi1KrPma6Y+r/bsGI6MjbM1MBSe6W9A4uYMLhNI5NR4JtTnqxhf7g1XdpaDtBdv5aOWKEx4d5rxnhg==
+  dependencies:
+    lodash.frompairs "^4.0.1"
+    lodash.isequal "^4.5.0"
+    lodash.isstring "^4.0.1"
+    lodash.omit "^4.5.0"
+    lodash.pick "^4.4.0"
+    lodash.template "^4.5.0"
+
 "@expo/webpack-config@0.12.74", "@expo/webpack-config@^0.12.74":
   version "0.12.74"
   resolved "https://registry.yarnpkg.com/@expo/webpack-config/-/webpack-config-0.12.74.tgz#e1922250c4b8bb2ab284da5a70ce8b354d7a6fe7"
@@ -4566,7 +4578,7 @@
   resolved "https://registry.yarnpkg.com/@react-native-community/netinfo/-/netinfo-6.0.0.tgz#2a4d7190b508dd0c2293656c9c1aa068f6f60a71"
   integrity sha512-Z9M8VGcF2IZVOo2x+oUStvpCW/8HjIRi4+iQCu5n+PhC7OqCQX58KYAzdBr///alIfRXiu6oMb+lK+rXQH1FvQ==
 
-"@react-native-community/slider@3.0.3":
+"@react-native-community/slider@3.0.3", "@react-native-community/slider@^3.0.3":
   version "3.0.3"
   resolved "https://registry.yarnpkg.com/@react-native-community/slider/-/slider-3.0.3.tgz#830167fd757ba70ac638747ba3169b2dbae60330"
   integrity sha512-8IeHfDwJ9/CTUwFs6x90VlobV3BfuPgNLjTgC6dRZovfCWigaZwVNIFFJnHBakK3pW2xErAPwhdvNR4JeNoYbw==
@@ -4590,6 +4602,11 @@
   version "2.3.0"
   resolved "https://registry.yarnpkg.com/@react-native-segmented-control/segmented-control/-/segmented-control-2.3.0.tgz#f3ec8bf40a7e7df8c9ed15cc97513eb343e6f89c"
   integrity sha512-CWa6G/j0SyVkavrf4riyuKWrSJmALOCn9F+PNtDPhlQMVKlZyYL11BOFl+plLqYqNu6Hm2+xkHVx6eZI63c/Tw==
+
+"@react-native-segmented-control/segmented-control@^2.4.0":
+  version "2.4.0"
+  resolved "https://registry.yarnpkg.com/@react-native-segmented-control/segmented-control/-/segmented-control-2.4.0.tgz#0a88f22ad2c0fe07ecc002ee1e5d62c55a3dd0ae"
+  integrity sha512-2s1AaT6xk/Do5s6u7ioCXucqesAt02NQlLKBOM28dJWI7PTH9o89x6AwsGHIeMkTe4nQ6iENiJKzO7Y3SGG9Ew==
 
 "@react-navigation/bottom-tabs@~5.11.1":
   version "5.11.1"

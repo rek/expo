@@ -1,8 +1,7 @@
+import spawnAsync from '@expo/spawn-async';
 import { IosPlist } from '@expo/xdl';
-import chalk from 'chalk';
 import fs from 'fs';
 import path from 'path';
-import spawnAsync from '@expo/spawn-async';
 
 import { runExpoCliAsync } from '../ExpoCLI';
 
@@ -12,12 +11,13 @@ type Action = {
 };
 
 async function action({ platform, name }: Action) {
+  // TODO - read package name from CWD if not specified
+
   // eslint-disable-next-line
   const examplesRoot = path.resolve(__dirname, '../../../examples');
 
   const projectName = `${name}-stories`;
   const xcodeProjectName = projectName.split('-').join('');
-  console.log({ xcodeProjectName });
 
   // TODO - flag to toggle this rebuild from scratch
   const projectRoot = path.resolve(examplesRoot, projectName);
@@ -25,8 +25,6 @@ async function action({ platform, name }: Action) {
     // @ts-ignore
     fs.rmdirSync(projectRoot, { recursive: true, force: true });
   }
-
-  console.log({ examplesRoot });
 
   // 1. initialize expo project w/ name
   await runExpoCliAsync('init', [projectName, '-t', 'bare-minimum', '--no-install'], {
@@ -37,7 +35,6 @@ async function action({ platform, name }: Action) {
   await runExpoCliAsync('prebuild', [], { cwd: projectRoot });
 
   // 3. copy over template files for project
-
   // eslint-disable-next-line
   const templateRoot = path.resolve(__dirname, '../../../template-files/stories-templates');
 
@@ -51,6 +48,7 @@ async function action({ platform, name }: Action) {
   const defaultPkg = require(path.resolve(templateRoot, 'pkg.json'));
   const projectPkg = require(path.resolve(projectRoot, 'package.json'));
 
+  // todo - merge dependencies
   const mergedPkg = {
     ...projectPkg,
     ...defaultPkg,
@@ -109,13 +107,10 @@ async function action({ platform, name }: Action) {
   // remove .git directory - seems to help with watchman and fast refresh??
   // figure this one out - doesnt seem to help
   // @ts-ignore
-  // fs.rmdirSync(path.resolve(projectRoot, '.git'), { force: true, recursiv/e: true });
-
-  // process.chdir(projectRoot);
-  // await runExpoCliAsync('run:ios', [], { cwd: projectRoot });
+  fs.rmdirSync(path.resolve(projectRoot, '.git'), { force: true, recursive: true });
 
   // NEXT:
-  // 6. update package w/ required modules (e.g cocoapods)
+  // 6. update package w/ required modules (e.g cocoapods) via config in package.json
   // 7. start stories server
 }
 
