@@ -2,8 +2,8 @@ import spawnAsync from '@expo/spawn-async';
 import { IosPlist } from '@expo/xdl';
 import fs from 'fs';
 import path from 'path';
-import { podInstallAsync } from '../CocoaPods';
 
+import { podInstallAsync } from '../CocoaPods';
 import { runExpoCliAsync } from '../ExpoCLI';
 
 type Action = {
@@ -24,7 +24,11 @@ async function action({ platform, name }: Action) {
   }
 
   // eslint-disable-next-line
-  const examplesRoot = path.resolve(__dirname, '../../../examples');
+  const examplesRoot = path.resolve(__dirname, '../../../story-loaders');
+
+  if (!fs.existsSync(examplesRoot)) {
+    fs.mkdirSync(examplesRoot)
+  }
 
   const projectName = `${name}-stories`;
   const xcodeProjectName = projectName.split('-').join('');
@@ -77,10 +81,7 @@ async function action({ platform, name }: Action) {
   const packagesToExclude = defaultPackagesToExclude.filter(
     (pkg: string) => !packagesRequiredByModule.includes(pkg)
   );
-
-  console.log({ packagesRequiredByModule });
-  console.log({ packagesToExclude });
-
+  
   mergedPkg.expo.autolinking.exclude = packagesToExclude;
 
   // add any extra node modules required by the package (e.g stories components)
@@ -147,8 +148,8 @@ async function action({ platform, name }: Action) {
 
 export default (program: any) => {
   program
-    .command('run-examples')
-    .option('-p, --platform <string>', 'Determine for which platform we should run')
+    .command('run-stories')
+    // .option('-p, --platform <string>', 'Determine for which platform we should run')
     .option('-n, --name <string>', 'The name of the package')
     .asyncAction(action);
 };

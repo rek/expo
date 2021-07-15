@@ -16,8 +16,8 @@ export const HttpPlayer = () => (
 //   <VideoPlayer
 //     sources={[
 // TODO - asset resolution w/ metro
-//       require('./__stories__/assets/videos/ace.mp4'),
-//       require('./__stories__/assets/videos/star.mp4'),
+//       require('./assets/videos/ace.mp4'),
+//       require('./assets/videos/star.mp4'),
 //     ]}
 //   />
 // );
