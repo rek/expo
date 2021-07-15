@@ -1,6 +1,6 @@
 import React from 'react';
 
-import VideoPlayer from './__stories__/VideoPlayer';
+import VideoPlayer from './VideoPlayer';
 
 export const HttpPlayer = () => (
   <VideoPlayer

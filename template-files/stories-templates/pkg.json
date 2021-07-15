@@ -1,8 +1,8 @@
 {
   "scripts": {
-    "start": "concurrently \"expo run:ios\" \"yarn stories\" ",
-    "android": "react-native run-android",
-    "ios": "react-native run-ios",
+    "start": "expo start --dev-client",
+    "android": "concurrently \"expo run:android\" \"yarn stories\"",
+    "ios": "concurrently \"expo run:ios\" \"yarn stories\"",
     "web": "expo start --web",
     "eject": "expo eject",
     "postinstall": "expo-yarn-workspaces postinstall",

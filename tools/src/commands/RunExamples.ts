@@ -2,6 +2,7 @@ import spawnAsync from '@expo/spawn-async';
 import { IosPlist } from '@expo/xdl';
 import fs from 'fs';
 import path from 'path';
+import { podInstallAsync } from '../CocoaPods';
 
 import { runExpoCliAsync } from '../ExpoCLI';
 
@@ -11,7 +12,16 @@ type Action = {
 };
 
 async function action({ platform, name }: Action) {
-  // TODO - read package name from CWD if not specified
+  const cwdPkg = require(path.resolve(process.cwd(), 'package.json'));
+  const cwdPkgName = cwdPkg.name;
+
+  if (cwdPkgName && cwdPkgName !== '@expo/expo') {
+    name = cwdPkgName;
+  }
+
+  if (!name) {
+    throw new Error('Need to specify a name or run this in a package repo');
+  }
 
   // eslint-disable-next-line
   const examplesRoot = path.resolve(__dirname, '../../../examples');
@@ -32,7 +42,7 @@ async function action({ platform, name }: Action) {
   });
 
   // 2. run expo prebuild on project
-  await runExpoCliAsync('prebuild', [], { cwd: projectRoot });
+  await runExpoCliAsync('prebuild', ['--no-install'], { cwd: projectRoot });
 
   // 3. copy over template files for project
   // eslint-disable-next-line
@@ -47,26 +57,45 @@ async function action({ platform, name }: Action) {
   const packageRoot = path.resolve(__dirname, '../../../packages', name);
   const defaultPkg = require(path.resolve(templateRoot, 'pkg.json'));
   const projectPkg = require(path.resolve(projectRoot, 'package.json'));
+  const packagePkg = require(path.resolve(packageRoot, 'package.json'));
 
-  // todo - merge dependencies
   const mergedPkg = {
     ...projectPkg,
     ...defaultPkg,
   };
 
+  // configure story server
   mergedPkg.expoStories = {
     projectRoot,
     watchRoot: packageRoot,
   };
 
-  console.log({ defaultPkg, projectPkg, mergedPkg });
+  // add native modules by removing them from excluded autolinked packages
+  const defaultPackagesToExclude = mergedPkg.expo.autolinking.exclude;
+  const packagesRequiredByModule: string[] = packagePkg.expoStories?.packages || [];
+
+  const packagesToExclude = defaultPackagesToExclude.filter(
+    (pkg: string) => !packagesRequiredByModule.includes(pkg)
+  );
+
+  console.log({ packagesRequiredByModule });
+  console.log({ packagesToExclude });
+
+  mergedPkg.expo.autolinking.exclude = packagesToExclude;
+
+  // add any extra node modules required by the package (e.g stories components)
+  const extraNodeModules = packagePkg.expoStories?.extraNodeModules || {};
+  mergedPkg.dependencies = {
+    ...mergedPkg.dependencies,
+    ...extraNodeModules,
+  };
 
   fs.writeFileSync(
     path.resolve(projectRoot, 'package.json'),
     JSON.stringify(mergedPkg, null, '\t')
   );
 
-  // appdelegate.{h,m}
+  // AppDelegate.{h,m}
   const iosRoot = path.resolve(projectRoot, 'ios', xcodeProjectName);
 
   fs.copyFileSync(
@@ -79,7 +108,7 @@ async function action({ platform, name }: Action) {
     path.resolve(iosRoot, 'AppDelegate.m')
   );
 
-  // podfile
+  // Podfile
   const podfileRoot = path.resolve(projectRoot, 'ios/Podfile');
 
   fs.copyFileSync(path.resolve(templateRoot, 'ios/Podfile'), podfileRoot);
@@ -90,9 +119,8 @@ async function action({ platform, name }: Action) {
 
   fs.writeFileSync(path.resolve(projectRoot, 'ios/Podfile'), podFileStr, { encoding: 'utf-8' });
 
-  // info.plist -> add splash screen
+  // Info.plist -> add splash screen
   IosPlist.modifyAsync(iosRoot, 'Info', config => {
-    console.log({ config });
     config['UILaunchStoryboardName'] = 'SplashScreen';
     return config;
   });
@@ -101,17 +129,20 @@ async function action({ platform, name }: Action) {
   fs.writeFileSync(path.resolve(projectRoot, '.watchmanconfig'), '{}', { encoding: 'utf-8' });
   fs.copyFileSync(path.resolve(templateRoot, 'App.js'), path.resolve(projectRoot, 'App.js'));
 
-  // 4. yarn / install deps
+  // 4. yarn + install deps
+  console.log('🧶 Yarning...');
   await spawnAsync('yarn', ['install'], { cwd: projectRoot });
+
+  console.log('☕️ Podding...');
+  await podInstallAsync(path.resolve(projectRoot, 'ios'));
+
+  console.log('Done!');
+  console.log(`Navigate to ${examplesRoot}/${projectName}!`);
 
   // remove .git directory - seems to help with watchman and fast refresh??
   // figure this one out - doesnt seem to help
   // @ts-ignore
-  fs.rmdirSync(path.resolve(projectRoot, '.git'), { force: true, recursive: true });
-
-  // NEXT:
-  // 6. update package w/ required modules (e.g cocoapods) via config in package.json
-  // 7. start stories server
+  // fs.rmdirSync(path.resolve(projectRoot, '.git'), { force: true, recursive: true });
 }
 
 export default (program: any) => {
