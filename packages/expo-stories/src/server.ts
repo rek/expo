@@ -47,21 +47,33 @@ function startServer(serverConfig: IServerConfig) {
     saveStoryAtPath(relPath);
   });
 
-  const watcher = sane(projectRoot, {
+  const watcher = sane(watchRoot, {
     glob: ['**/*.stories.tsx', '**/*.stories.js', '**/*.stories.ts', '**/*.stories.jsx'],
     ignored: ['node_modules'],
     watchman: true,
   });
 
   watcher.on('change', relPath => {
+    console.log('change');
+    console.log({ relPath });
     saveStoryAtPath(relPath);
+    refreshClients();
+
+    console.log({ storyManifest });
   });
 
   watcher.on('add', relPath => {
+    console.log('add');
+    console.log({ relPath });
     saveStoryAtPath(relPath);
+    refreshClients();
+
+    console.log({ storyManifest });
   });
 
   watcher.on('delete', function(relPath) {
+    console.log('delete');
+    console.log({ relPath });
     const fullPath = path.resolve(watchRoot, relPath);
     const id = createId(fullPath);
 
@@ -72,12 +84,15 @@ function startServer(serverConfig: IServerConfig) {
       encoding: 'utf-8',
     });
 
+    console.log({ storyManifest });
     writeStoriesFile();
+    refreshClients();
   });
 
   watcher.on('ready', () => {
-    console.log('ready');
+    console.log('startApp()');
     startApp();
+    refreshClients();
   });
 
   const app = express();
@@ -139,6 +154,19 @@ function startServer(serverConfig: IServerConfig) {
   function startApp() {
     server.listen(port, () => {
       console.log(`Listening on http://localhost:${port}`);
+    });
+  }
+
+  function refreshClients() {
+    wss.clients.forEach(client => {
+      if (client.readyState === ws.OPEN) {
+        const message = JSON.stringify({
+          type: 'refreshStories',
+          payload: undefined,
+        });
+
+        client.send(message);
+      }
     });
   }
 
@@ -216,17 +244,13 @@ function startServer(serverConfig: IServerConfig) {
       });
     }
 
-    let cachedFile = storyManifest.files[id];
+    storyManifest.files[id] = {
+      id,
+      fullPath,
+      relativePath: relPath,
+    };
 
-    if (!cachedFile) {
-      storyManifest.files[id] = {
-        id,
-        fullPath,
-        relativePath: relPath,
-      };
-
-      cachedFile = storyManifest.files[id];
-    }
+    const cachedFile = storyManifest.files[id];
 
     cachedFile.title = storyData.title;
     cachedFile.stories = storyData.stories;
@@ -247,28 +271,42 @@ function startServer(serverConfig: IServerConfig) {
       return stories
         .map(story => {
           storiesById[story.id] = story;
-          const componentKey = story.id;
 
           return `
-            const ${componentKey} = require("${story.fullPath}")
-        
-            Object.keys(${componentKey}).forEach((key) => {
-              const Component = ${componentKey}[key]
-              
-              if (typeof Component === "function") {
-                const storyId = "${componentKey}" + "_" + key
-                stories[storyId] = Component
-              }
-            })
+            function ${story.id}Setup() {
+              const stories = require("${story.fullPath}")
+              const parentConfig = stories.default || {}
+              parentConfig.id = "${story.id}"
+
+              Object.keys(stories).forEach((key) => {
+                const Component = stories[key]
+                
+                if (typeof Component === "function") {
+                  const storyId = "${story.id}" + "_" + key
+                  
+                  Component.storyConfig = {
+                    id: storyId,
+                    name: key,
+                    ...Component.storyConfig,
+                  }
+
+                  Component.parentConfig = parentConfig
+
+                  storiesToExport[storyId] = Component 
+                }
+              })
+            }
+
+            ${story.id}Setup()
           `;
         })
         .join('\n');
     }
 
     const template = `
-      const stories = {}
+      const storiesToExport = {}
       ${captureAndWriteStoryRequires()}
-      module.exports = stories
+      module.exports = storiesToExport
     `;
 
     const storiesDir = path.resolve(projectRoot, storiesFileDir);

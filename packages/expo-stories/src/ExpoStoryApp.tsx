@@ -1,17 +1,30 @@
 import { lightTheme, shadows, spacing } from '@expo/styleguide-native';
 import * as React from 'react';
-import {
-  View,
-  SafeAreaView,
-  Pressable,
-  Text,
-  StyleSheet,
-  ScrollView,
-  ActivityIndicator,
-} from 'react-native';
+import { View, SafeAreaView, Pressable, Text, StyleSheet, ScrollView } from 'react-native';
 
 import { ExpoStoryLoader } from './ExpoStoryLoader';
 import { Stack, StackContainer } from './async-stack';
+
+// this is resolved via customization (extraNodeModules) in metro-config / webpack-config
+const stories = require('generated-expo-stories');
+
+// aggregate stories
+const storyData = {};
+
+Object.keys(stories).forEach(key => {
+  const story = stories[key];
+  const storyConfig = story.storyConfig;
+  const parentConfig = story.parentConfig;
+
+  if (!storyData[parentConfig.id]) {
+    storyData[parentConfig.id] = {
+      ...parentConfig,
+      stories: [],
+    };
+  }
+
+  storyData[parentConfig.id].stories.push(storyConfig);
+});
 
 export default function App() {
   return (
@@ -22,26 +35,12 @@ export default function App() {
 }
 
 function ExpoStoryApp() {
-  const [stories, setStories] = React.useState([]);
+  const parentStories: any[] = [];
 
-  const [loading, setLoading] = React.useState(false);
-  const [lastFetchedAt, setLastFetchedAt] = React.useState(new Date().toISOString());
-
-  React.useEffect(() => {
-    setLoading(true);
-
-    fetch(`http://localhost:7001/stories`)
-      .then(res => res.json())
-      .then(json => {
-        setLoading(false);
-        setStories(json.data);
-      })
-      .catch(error => {
-        setLoading(false);
-        console.log('Server not running?');
-        console.log({ error });
-      });
-  }, [lastFetchedAt]);
+  Object.keys(storyData).forEach(key => {
+    const parentStory: any = storyData[key];
+    parentStories.push(parentStory);
+  });
 
   return (
     <SafeAreaView style={styles.flexContainer}>
@@ -49,14 +48,14 @@ function ExpoStoryApp() {
         <Text style={styles.storyTitle}>Expo Story Loader</Text>
 
         <ScrollView style={styles.storyButtonsContainer}>
-          {stories.map((story: any) => {
+          {parentStories.map((story: any) => {
             return (
               <StoryButton
                 key={story.id}
                 title={story.title}
                 onPress={() => {
                   Stack.push({
-                    element: <StoriesScreen story={story} />,
+                    element: <StoriesScreen parentStoryId={story.id} />,
                     headerProps: { title: story.title },
                   });
                 }}
@@ -64,62 +63,55 @@ function ExpoStoryApp() {
             );
           })}
         </ScrollView>
-
-        {/* <View style={styles.refreshButton}>
-          <StoryButton
-            title="Refresh"
-            color={lightTheme.button.tertiary.background}
-            onPress={() => setLastFetchedAt(new Date().toISOString())}
-          />
-
-          <ActivityIndicator
-            style={styles.refreshLoader}
-            color={lightTheme.button.tertiary.foreground}
-            animating={loading}
-          />
-        </View> */}
-
-        <View style={styles.loadingContainer} pointerEvents="none">
-          <ActivityIndicator animating={loading} />
-        </View>
       </View>
     </SafeAreaView>
   );
 }
 
-function StoriesScreen({ story }) {
+function StoriesScreen({ parentStoryId }) {
+  const parentStories: any = [];
+
+  Object.keys(storyData).forEach(key => {
+    if (key === parentStoryId) {
+      parentStories.push(storyData[key]);
+    }
+  });
+
   return (
     <SafeAreaView style={styles.flexContainer}>
       <ScrollView style={styles.flexContainer}>
-        <View style={styles.storyButtonsContainer}>
-          {story.stories.map(story => {
-            return (
-              <StoryButton
-                key={story.id}
-                title={story.name}
-                onPress={() => {
-                  Stack.push({
-                    element: <ExpoStoryLoader selectedStoryId={story.id} />,
-                    headerProps: { title: story.name },
-                  });
-                }}
-              />
-            );
-          })}
-
-          {story.stories.length > 1 && (
-            <StoryButton
-              title="See All"
-              color={lightTheme.button.tertiary.background}
-              onPress={() => {
-                Stack.push({
-                  element: <ExpoStoryLoader selectedStoryId={story.id} displayStoryTitle />,
-                  headerProps: { title: `${story.title} Stories` },
-                });
-              }}
-            />
-          )}
-        </View>
+        {parentStories.map(story => {
+          return (
+            <View key={story.id}>
+              {story.stories.map(s => {
+                return (
+                  <StoryButton
+                    key={s.id}
+                    title={s.name}
+                    onPress={() => {
+                      Stack.push({
+                        element: <ExpoStoryLoader selectedStoryId={s.id} />,
+                        headerProps: { title: s.name },
+                      });
+                    }}
+                  />
+                );
+              })}
+              {story.stories.length > 1 && (
+                <StoryButton
+                  title="See All"
+                  color={lightTheme.button.tertiary.background}
+                  onPress={() => {
+                    Stack.push({
+                      element: <ExpoStoryLoader selectedStoryId={story.id} displayStoryTitle />,
+                      headerProps: { title: `${story.title} Stories` },
+                    });
+                  }}
+                />
+              )}
+            </View>
+          );
+        })}
       </ScrollView>
     </SafeAreaView>
   );

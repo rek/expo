@@ -41,18 +41,28 @@ function startServer(serverConfig) {
     results.forEach(function (relPath) {
         saveStoryAtPath(relPath);
     });
-    var watcher = sane_1.default(projectRoot, {
+    var watcher = sane_1.default(watchRoot, {
         glob: ['**/*.stories.tsx', '**/*.stories.js', '**/*.stories.ts', '**/*.stories.jsx'],
         ignored: ['node_modules'],
         watchman: true,
     });
     watcher.on('change', function (relPath) {
+        console.log('change');
+        console.log({ relPath: relPath });
         saveStoryAtPath(relPath);
+        refreshClients();
+        console.log({ storyManifest: storyManifest });
     });
     watcher.on('add', function (relPath) {
+        console.log('add');
+        console.log({ relPath: relPath });
         saveStoryAtPath(relPath);
+        refreshClients();
+        console.log({ storyManifest: storyManifest });
     });
     watcher.on('delete', function (relPath) {
+        console.log('delete');
+        console.log({ relPath: relPath });
         var fullPath = path_1.default.resolve(watchRoot, relPath);
         var id = createId(fullPath);
         delete storyManifest.files[id];
@@ -60,11 +70,14 @@ function startServer(serverConfig) {
         fs_1.default.writeFileSync(manifestFilePath, storyManifestAsString, {
             encoding: 'utf-8',
         });
+        console.log({ storyManifest: storyManifest });
         writeStoriesFile();
+        refreshClients();
     });
     watcher.on('ready', function () {
-        console.log('ready');
+        console.log('startApp()');
         startApp();
+        refreshClients();
     });
     var app = express_1.default();
     app.use(body_parser_1.default.json());
@@ -113,6 +126,17 @@ function startServer(serverConfig) {
     function startApp() {
         server.listen(port, function () {
             console.log("Listening on http://localhost:" + port);
+        });
+    }
+    function refreshClients() {
+        wss.clients.forEach(function (client) {
+            if (client.readyState === ws_1.default.OPEN) {
+                var message = JSON.stringify({
+                    type: 'refreshStories',
+                    payload: undefined,
+                });
+                client.send(message);
+            }
         });
     }
     function saveStoryAtPath(relPath) {
@@ -178,15 +202,12 @@ function startServer(serverConfig) {
                 storyData[key] = value;
             });
         }
+        storyManifest.files[id] = {
+            id: id,
+            fullPath: fullPath,
+            relativePath: relPath,
+        };
         var cachedFile = storyManifest.files[id];
-        if (!cachedFile) {
-            storyManifest.files[id] = {
-                id: id,
-                fullPath: fullPath,
-                relativePath: relPath,
-            };
-            cachedFile = storyManifest.files[id];
-        }
         cachedFile.title = storyData.title;
         cachedFile.stories = storyData.stories;
         var storyManifestAsString = JSON.stringify(storyManifest, null, '\t');
@@ -201,12 +222,11 @@ function startServer(serverConfig) {
             return stories
                 .map(function (story) {
                 storiesById[story.id] = story;
-                var componentKey = story.id;
-                return "\n            const " + componentKey + " = require(\"" + story.fullPath + "\")\n        \n            Object.keys(" + componentKey + ").forEach((key) => {\n              const Component = " + componentKey + "[key]\n              \n              if (typeof Component === \"function\") {\n                const storyId = \"" + componentKey + "\" + \"_\" + key\n                stories[storyId] = Component\n              }\n            })\n          ";
+                return "\n            function " + story.id + "Setup() {\n              const stories = require(\"" + story.fullPath + "\")\n              const parentConfig = stories.default || {}\n              parentConfig.id = \"" + story.id + "\"\n\n              Object.keys(stories).forEach((key) => {\n                const Component = stories[key]\n                \n                if (typeof Component === \"function\") {\n                  const storyId = \"" + story.id + "\" + \"_\" + key\n                  \n                  Component.storyConfig = {\n                    id: storyId,\n                    name: key,\n                    ...Component.storyConfig,\n                  }\n\n                  Component.parentConfig = parentConfig\n\n                  storiesToExport[storyId] = Component \n                }\n              })\n            }\n\n            " + story.id + "Setup()\n          ";
             })
                 .join('\n');
         }
-        var template = "\n      const stories = {}\n      " + captureAndWriteStoryRequires() + "\n      module.exports = stories\n    ";
+        var template = "\n      const storiesToExport = {}\n      " + captureAndWriteStoryRequires() + "\n      module.exports = storiesToExport\n    ";
         var storiesDir = path_1.default.resolve(projectRoot, constants_1.storiesFileDir);
         var writeRequiresPath = path_1.default.resolve(storiesDir, 'stories.js');
         fs_1.default.writeFileSync(writeRequiresPath, template, { encoding: 'utf-8' });

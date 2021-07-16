@@ -34,22 +34,20 @@ function writeRequiredFiles(serverConfig: IServerConfig) {
     }
   }
 
-  if (!fs.existsSync(pathToStoryManifest)) {
-    const emptyManifest = {
-      watchRoot,
-      port,
-      projectRoot,
-      files: {},
-    };
+  const emptyManifest = {
+    watchRoot,
+    port,
+    projectRoot,
+    files: {},
+  };
 
-    const emptyManifestAsString = JSON.stringify(emptyManifest, null, '\t');
+  const emptyManifestAsString = JSON.stringify(emptyManifest, null, '\t');
 
-    delete require.cache[pathToStoryManifest];
+  delete require.cache[pathToStoryManifest];
 
-    fs.writeFileSync(pathToStoryManifest, emptyManifestAsString, {
-      encoding: 'utf-8',
-    });
-  }
+  fs.writeFileSync(pathToStoryManifest, emptyManifestAsString, {
+    encoding: 'utf-8',
+  });
 }
 
 export { writeRequiredFiles };

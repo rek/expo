@@ -15,10 +15,18 @@ export const AudioHttpPlayer = () => (
   />
 );
 
+AudioHttpPlayer.storyConfig = {
+  name: 'Http Player',
+};
+
 export const ModeSelector = () => <AudioModeSelector />;
 
+ModeSelector.storyConfig = {
+  name: 'Audio Selector',
+};
+
 export default {
-  title: 'Expo AV - Audio',
+  title: 'Audio',
 };
 
 const styles = StyleSheet.create({

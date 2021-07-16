@@ -35,53 +35,58 @@ var React = __importStar(require("react"));
 var react_native_1 = require("react-native");
 var ExpoStoryLoader_1 = require("./ExpoStoryLoader");
 var async_stack_1 = require("./async-stack");
+// this is resolved via customization (extraNodeModules) in metro-config / webpack-config
+var stories = require('generated-expo-stories');
+// aggregate stories
+var storyData = {};
+Object.keys(stories).forEach(function (key) {
+    var story = stories[key];
+    var storyConfig = story.storyConfig;
+    var parentConfig = story.parentConfig;
+    if (!storyData[parentConfig.id]) {
+        storyData[parentConfig.id] = __assign(__assign({}, parentConfig), { stories: [] });
+    }
+    storyData[parentConfig.id].stories.push(storyConfig);
+});
 function App() {
     return (React.createElement(async_stack_1.StackContainer, null,
         React.createElement(ExpoStoryApp, null)));
 }
 exports.default = App;
 function ExpoStoryApp() {
-    var _a = React.useState([]), stories = _a[0], setStories = _a[1];
-    var _b = React.useState(false), loading = _b[0], setLoading = _b[1];
-    var _c = React.useState(new Date().toISOString()), lastFetchedAt = _c[0], setLastFetchedAt = _c[1];
-    React.useEffect(function () {
-        setLoading(true);
-        fetch("http://localhost:7001/stories")
-            .then(function (res) { return res.json(); })
-            .then(function (json) {
-            setLoading(false);
-            setStories(json.data);
-        })
-            .catch(function (error) {
-            setLoading(false);
-            console.log('Server not running?');
-            console.log({ error: error });
-        });
-    }, [lastFetchedAt]);
+    var parentStories = [];
+    Object.keys(storyData).forEach(function (key) {
+        var parentStory = storyData[key];
+        parentStories.push(parentStory);
+    });
     return (React.createElement(react_native_1.SafeAreaView, { style: styles.flexContainer },
         React.createElement(react_native_1.View, { style: styles.flexContainer },
             React.createElement(react_native_1.Text, { style: styles.storyTitle }, "Expo Story Loader"),
-            React.createElement(react_native_1.ScrollView, { style: styles.storyButtonsContainer }, stories.map(function (story) {
+            React.createElement(react_native_1.ScrollView, { style: styles.storyButtonsContainer }, parentStories.map(function (story) {
                 return (React.createElement(StoryButton, { key: story.id, title: story.title, onPress: function () {
                         async_stack_1.Stack.push({
-                            element: React.createElement(StoriesScreen, { story: story }),
+                            element: React.createElement(StoriesScreen, { parentStoryId: story.id }),
                             headerProps: { title: story.title },
                         });
                     } }));
-            })),
-            React.createElement(react_native_1.View, { style: styles.loadingContainer, pointerEvents: "none" },
-                React.createElement(react_native_1.ActivityIndicator, { animating: loading })))));
+            })))));
 }
 function StoriesScreen(_a) {
-    var story = _a.story;
+    var parentStoryId = _a.parentStoryId;
+    var parentStories = [];
+    Object.keys(storyData).forEach(function (key) {
+        if (key === parentStoryId) {
+            parentStories.push(storyData[key]);
+        }
+    });
     return (React.createElement(react_native_1.SafeAreaView, { style: styles.flexContainer },
-        React.createElement(react_native_1.ScrollView, { style: styles.flexContainer },
-            React.createElement(react_native_1.View, { style: styles.storyButtonsContainer },
-                story.stories.map(function (story) {
-                    return (React.createElement(StoryButton, { key: story.id, title: story.name, onPress: function () {
+        React.createElement(react_native_1.ScrollView, { style: styles.flexContainer }, parentStories.map(function (story) {
+            return (React.createElement(react_native_1.View, { key: story.id },
+                story.stories.map(function (s) {
+                    return (React.createElement(StoryButton, { key: s.id, title: s.name, onPress: function () {
                             async_stack_1.Stack.push({
-                                element: React.createElement(ExpoStoryLoader_1.ExpoStoryLoader, { selectedStoryId: story.id }),
-                                headerProps: { title: story.name },
+                                element: React.createElement(ExpoStoryLoader_1.ExpoStoryLoader, { selectedStoryId: s.id }),
+                                headerProps: { title: s.name },
                             });
                         } }));
                 }),
@@ -90,7 +95,8 @@ function StoriesScreen(_a) {
                             element: React.createElement(ExpoStoryLoader_1.ExpoStoryLoader, { selectedStoryId: story.id, displayStoryTitle: true }),
                             headerProps: { title: story.title + " Stories" },
                         });
-                    } }))))));
+                    } }))));
+        }))));
 }
 function StoryButton(_a) {
     var title = _a.title, _b = _a.color, color = _b === void 0 ? styleguide_native_1.lightTheme.button.primary.background : _b, onPress = _a.onPress;

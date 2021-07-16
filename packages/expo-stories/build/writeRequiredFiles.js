@@ -28,19 +28,17 @@ function writeRequiredFiles(serverConfig) {
             fs_1.default.unlinkSync(pathToStoryManifest);
         }
     }
-    if (!fs_1.default.existsSync(pathToStoryManifest)) {
-        var emptyManifest = {
-            watchRoot: watchRoot,
-            port: port,
-            projectRoot: projectRoot,
-            files: {},
-        };
-        var emptyManifestAsString = JSON.stringify(emptyManifest, null, '\t');
-        delete require.cache[pathToStoryManifest];
-        fs_1.default.writeFileSync(pathToStoryManifest, emptyManifestAsString, {
-            encoding: 'utf-8',
-        });
-    }
+    var emptyManifest = {
+        watchRoot: watchRoot,
+        port: port,
+        projectRoot: projectRoot,
+        files: {},
+    };
+    var emptyManifestAsString = JSON.stringify(emptyManifest, null, '\t');
+    delete require.cache[pathToStoryManifest];
+    fs_1.default.writeFileSync(pathToStoryManifest, emptyManifestAsString, {
+        encoding: 'utf-8',
+    });
 }
 exports.writeRequiredFiles = writeRequiredFiles;
 //# sourceMappingURL=writeRequiredFiles.js.map
