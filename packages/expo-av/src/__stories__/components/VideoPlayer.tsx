@@ -4,7 +4,7 @@ import { Asset } from 'expo-asset';
 import React from 'react';
 import { Platform, StyleProp, Text, View, ViewStyle } from 'react-native';
 
-import { AVPlaybackStatus, ResizeMode, Video, VideoFullscreenUpdateEvent } from '../';
+import { AVPlaybackStatus, ResizeMode, Video, VideoFullscreenUpdateEvent } from '../..';
 import Player from './Player';
 
 type VideoPlayerSource =

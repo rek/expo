@@ -1,8 +1,9 @@
+import { Asset } from 'expo-asset';
 import * as React from 'react';
 import { PixelRatio, StyleSheet } from 'react-native';
 
-import AudioModeSelector from './AudioModeSelector';
-import AudioPlayer from './AudioPlayer';
+import AudioModeSelector from './components/AudioModeSelector';
+import AudioPlayer from './components/AudioPlayer';
 
 export const AudioHttpPlayer = () => (
   <AudioPlayer
@@ -18,6 +19,18 @@ export const AudioHttpPlayer = () => (
 AudioHttpPlayer.storyConfig = {
   name: 'Http Player',
 };
+
+export const LocalAssetPlayer = () => (
+  <AudioPlayer
+    source={Asset.fromModule(require('./assets/sounds/polonez.mp3'))}
+    style={styles.player}
+  />
+);
+
+LocalAssetPlayer.storyConfig = {
+  name: 'Local Asset Player',
+};
+
 
 export const ModeSelector = () => <AudioModeSelector />;
 

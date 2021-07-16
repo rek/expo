@@ -31,22 +31,46 @@ async function action({ platform, name }: Action) {
   }
 
   const projectName = `${name}-stories`;
-  const xcodeProjectName = projectName.split('-').join('');
+  const targetName = projectName.split('-').join('');
 
-  // TODO - flag to toggle this rebuild from scratch
+  // TODO - flag to toggle this rebuild from scratch?
   const projectRoot = path.resolve(examplesRoot, projectName);
   if (fs.existsSync(projectRoot)) {
     // @ts-ignore
     fs.rmdirSync(projectRoot, { recursive: true, force: true });
   }
 
+  console.log();
+  console.log(`🛠  Building fresh story loader for ${name}`);
+  console.log();
+
   // 1. initialize expo project w/ name
   await runExpoCliAsync('init', [projectName, '-t', 'bare-minimum', '--no-install'], {
     cwd: examplesRoot,
+    stdio: 'ignore',
   });
 
+  // remove .git repo for newly built project
+  // @ts-ignore
+  fs.rmdirSync(path.resolve(projectRoot, '.git'), { force: true, recursive: true });
+
   // 2. run expo prebuild on project
-  await runExpoCliAsync('prebuild', ['--no-install'], { cwd: projectRoot });
+  // First update bundle ids
+  const appJsonPath = path.resolve(projectRoot, 'app.json');
+  const appJson = require(appJsonPath);
+  const bundleId = `com.expo.${targetName}`;
+
+  appJson.expo.android = {
+    package: bundleId,
+  };
+
+  appJson.expo.ios = {
+    bundleIdentifier: bundleId,
+  };
+
+  fs.writeFileSync(appJsonPath, JSON.stringify(appJson, null, '\t'), { encoding: 'utf-8' });
+
+  await runExpoCliAsync('prebuild', ['--no-install'], { cwd: projectRoot, stdio: 'ignore' });
 
   // 3. copy over template files for project
   // eslint-disable-next-line
@@ -97,7 +121,7 @@ async function action({ platform, name }: Action) {
   );
 
   // AppDelegate.{h,m}
-  const iosRoot = path.resolve(projectRoot, 'ios', xcodeProjectName);
+  const iosRoot = path.resolve(projectRoot, 'ios', targetName);
 
   fs.copyFileSync(
     path.resolve(templateRoot, 'ios/AppDelegate.h'),
@@ -116,7 +140,7 @@ async function action({ platform, name }: Action) {
 
   // update target
   let podFileStr = fs.readFileSync(podfileRoot, { encoding: 'utf-8' });
-  podFileStr = podFileStr.replace('{{ targetName }}', xcodeProjectName);
+  podFileStr = podFileStr.replace('{{ targetName }}', targetName);
 
   fs.writeFileSync(path.resolve(projectRoot, 'ios/Podfile'), podFileStr, { encoding: 'utf-8' });
 
@@ -132,18 +156,10 @@ async function action({ platform, name }: Action) {
 
   // 4. yarn + install deps
   console.log('🧶 Yarning...');
+  console.log();
   await spawnAsync('yarn', ['install'], { cwd: projectRoot });
 
-  console.log('☕️ Podding...');
-  await podInstallAsync(path.resolve(projectRoot, 'ios'));
-
-  console.log('Done!');
-  console.log(`Navigate to ${examplesRoot}/${projectName}!`);
-
-  // remove .git directory - seems to help with watchman and fast refresh??
-  // figure this one out - doesnt seem to help
-  // @ts-ignore
-  // fs.rmdirSync(path.resolve(projectRoot, '.git'), { force: true, recursive: true });
+  console.log('✅ Done!');
 }
 
 export default (program: any) => {
