@@ -47,22 +47,16 @@ function startServer(serverConfig) {
         watchman: true,
     });
     watcher.on('change', function (relPath) {
-        console.log('change');
-        console.log({ relPath: relPath });
         saveStoryAtPath(relPath);
         refreshClients();
         console.log({ storyManifest: storyManifest });
     });
     watcher.on('add', function (relPath) {
-        console.log('add');
-        console.log({ relPath: relPath });
         saveStoryAtPath(relPath);
         refreshClients();
         console.log({ storyManifest: storyManifest });
     });
     watcher.on('delete', function (relPath) {
-        console.log('delete');
-        console.log({ relPath: relPath });
         var fullPath = path_1.default.resolve(watchRoot, relPath);
         var id = createId(fullPath);
         delete storyManifest.files[id];
@@ -75,9 +69,9 @@ function startServer(serverConfig) {
         refreshClients();
     });
     watcher.on('ready', function () {
-        console.log('startApp()');
         startApp();
         refreshClients();
+        logStories();
     });
     var app = express_1.default();
     app.use(body_parser_1.default.json());
@@ -216,6 +210,11 @@ function startServer(serverConfig) {
         });
         writeStoriesFile();
     }
+    function logStories() {
+        var stories = getStories();
+        console.log('Stories found: \n');
+        console.log({ stories: stories });
+    }
     function writeStoriesFile() {
         var stories = getStories();
         function captureAndWriteStoryRequires() {
@@ -227,6 +226,11 @@ function startServer(serverConfig) {
                 .join('\n');
         }
         var template = "\n      const storiesToExport = {}\n      " + captureAndWriteStoryRequires() + "\n      module.exports = storiesToExport\n    ";
+        if (!process.env.EXPO_DEBUG) {
+            template = require('esbuild').transformSync(template, {
+                minify: true,
+            }).code;
+        }
         var storiesDir = path_1.default.resolve(projectRoot, constants_1.storiesFileDir);
         var writeRequiresPath = path_1.default.resolve(storiesDir, 'stories.js');
         fs_1.default.writeFileSync(writeRequiresPath, template, { encoding: 'utf-8' });

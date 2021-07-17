@@ -3,7 +3,7 @@ import { Asset } from 'expo-asset';
 import React from 'react';
 import { StyleProp, ViewStyle } from 'react-native';
 
-import { Audio, AVPlaybackStatus } from '../';
+import { Audio, AVPlaybackStatus } from 'expo-av';
 import Player from './Player';
 
 type PlaybackSource =

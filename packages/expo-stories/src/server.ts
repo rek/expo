@@ -54,8 +54,6 @@ function startServer(serverConfig: IServerConfig) {
   });
 
   watcher.on('change', relPath => {
-    console.log('change');
-    console.log({ relPath });
     saveStoryAtPath(relPath);
     refreshClients();
 
@@ -63,8 +61,6 @@ function startServer(serverConfig: IServerConfig) {
   });
 
   watcher.on('add', relPath => {
-    console.log('add');
-    console.log({ relPath });
     saveStoryAtPath(relPath);
     refreshClients();
 
@@ -72,8 +68,6 @@ function startServer(serverConfig: IServerConfig) {
   });
 
   watcher.on('delete', function(relPath) {
-    console.log('delete');
-    console.log({ relPath });
     const fullPath = path.resolve(watchRoot, relPath);
     const id = createId(fullPath);
 
@@ -90,9 +84,9 @@ function startServer(serverConfig: IServerConfig) {
   });
 
   watcher.on('ready', () => {
-    console.log('startApp()');
     startApp();
     refreshClients();
+    logStories();
   });
 
   const app = express();
@@ -264,6 +258,12 @@ function startServer(serverConfig: IServerConfig) {
     writeStoriesFile();
   }
 
+  function logStories() {
+    const stories = getStories();
+    console.log('Stories found: \n');
+    console.log({ stories });
+  }
+
   function writeStoriesFile() {
     const stories = getStories();
 
@@ -303,11 +303,17 @@ function startServer(serverConfig: IServerConfig) {
         .join('\n');
     }
 
-    const template = `
+    let template = `
       const storiesToExport = {}
       ${captureAndWriteStoryRequires()}
       module.exports = storiesToExport
     `;
+
+    if (!process.env.EXPO_DEBUG) {
+      template = require('esbuild').transformSync(template, {
+        minify: true,
+      }).code;
+    }
 
     const storiesDir = path.resolve(projectRoot, storiesFileDir);
     const writeRequiresPath = path.resolve(storiesDir, 'stories.js');

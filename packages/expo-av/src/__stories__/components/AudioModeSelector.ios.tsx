@@ -1,7 +1,7 @@
 import React from 'react';
 import { PixelRatio, Switch, Text, View, Button as RNButton } from 'react-native';
 
-import { Audio } from '../';
+import { Audio } from 'expo-av';
 
 const Button = props => <RNButton {...props} />;
 const ListButton = props => <RNButton {...props} />;
